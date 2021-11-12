@@ -6,6 +6,7 @@
                 <div class="card p-2">
                     <div class="card-body">
                         <h5 class="card-title">Object Detection</h5>
+
                         <!-- Buttons -->
                         <div class="d-flex flex-row justify-content-between">
                             <div
@@ -54,11 +55,21 @@
                             </div>
 
                             <div
-                                class="btn btn-success"
-                                :class="{ disabled: !isImageReady }"
+                                class="btn"
+                                :class="{
+                                    disabled: !isImageReady,
+                                    'btn-success': !isPredicting,
+                                    'btn-warning': isPredicting,
+                                }"
                                 @click="predict"
                             >
-                                Predict
+                                <span
+                                    v-show="isPredicting"
+                                    class="spinner-border spinner-border-sm"
+                                    role="status"
+                                    aria-hidden="true"
+                                ></span>
+                                {{ isPredicting ? "Predicting.." : "Predict" }}
                             </div>
                         </div>
 
@@ -78,14 +89,6 @@
                                     Get
                                 </div>
                             </div>
-
-                            <img
-                                v-if="currentImageUrl"
-                                @load="imageLoaded"
-                                :src="currentImageUrl"
-                                alt="image"
-                                class="img-fluid mt-2"
-                            />
                         </div>
 
                         <!-- From File -->
@@ -94,13 +97,6 @@
                                 class="mb-2"
                                 type="file"
                                 @change="fileChanged"
-                            />
-                            <img
-                                v-if="fileInput"
-                                @load="imageLoaded"
-                                :src="fileInput"
-                                class="img-fluid mt-2"
-                                alt="Image"
                             />
                         </div>
 
@@ -162,14 +158,36 @@
                                 :width="cameraSize.width"
                                 :height="cameraSize.height"
                             ></video>
+                        </div>
+
+                        <!-- Prediction -->
+                        <div style="position: relative">
+                            <img
+                                style="position: absolute"
+                                v-show="isImageReady"
+                                @load="imageLoaded"
+                                :src="predictImageUrl"
+                                alt="image"
+                                crossorigin="anonymous"
+                                class="img-fluid mt-2"
+                                id="predicted-img"
+                            />
 
                             <canvas
                                 v-show="isCameraOpen && isImageReady"
-                                id="photoTaken"
+                                id="photo-taken"
+                                style="position: absolute"
                                 class="my-2"
                                 ref="canvas"
                                 :width="cameraSize.width"
                                 :height="cameraSize.height"
+                            ></canvas>
+
+                            <canvas
+                                v-show="isPredicted"
+                                style="position: absolute"
+                                id="prediction-result"
+                                class="my-2"
                             ></canvas>
                         </div>
                     </div>
@@ -180,6 +198,10 @@
 </template>
 
 <script>
+import * as tf from "@tensorflow/tfjs";
+
+tf.setBackend("webgl");
+
 export default {
     name: "App",
     data() {
@@ -187,11 +209,14 @@ export default {
             isLoading: false,
             isCameraOpen: false,
             isImageReady: false,
+            isPredicting: false,
+            isPredicted: false,
+            threshold: 0.6,
             detectFrom: "camera",
-            cameraSize: { width: 500, height: 374 },
+            cameraSize: { width: 600, height: 500 }, 
+            predictImageUrl: "",
             imageUrl: "",
-            currentImageUrl: "",
-            fileInput: "",
+            model: null,
         };
     },
     methods: {
@@ -261,31 +286,160 @@ export default {
                 this.stopCameraStream();
             }
 
-            this.fileInput = "";
             this.imageUrl = "";
-            this.currentImageUrl = "";
+            this.predictImageUrl = "";
             this.isImageReady = false;
 
             this.detectFrom = selected;
         },
 
         getImage() {
-            this.currentImageUrl = this.imageUrl;
+            if (this.predictImageUrl != this.imageUrl)
+                this.predictImageUrl = this.imageUrl;
         },
 
         fileChanged(event) {
             const file = event.target.files[0];
-            this.fileInput = URL.createObjectURL(file);
+            this.predictImageUrl = URL.createObjectURL(file);
         },
 
         imageLoaded() {
             this.isImageReady = true;
         },
 
-        predict() {
-            // Prediction stuff
-        }
+        getImageElement() {
+            return {
+                image:
+                    this.detectFrom == "camera"
+                        ? document.getElementById("photo-taken")
+                        : document.getElementById("predicted-img"),
+                canvas: document.getElementById("prediction-result"),
+            };
+        },
 
+        async predict() {
+            if (this.isPredicting || !this.isImageReady) return;
+            this.isPredicting = true;
+
+            const { image, canvas } = this.getImageElement();
+
+            if (!this.model) {
+                this.model = Object.freeze(await this.loadModel());
+            }
+
+            tf.engine().startScope();
+
+            const predictions = await this.model.executeAsync(
+                await this.preprocessImg(image)
+            );
+            const detectionObjects = this.buildDetectedObjects({
+                scores: predictions[5].arraySync(),
+                threshold: this.threshold,
+                boxes: predictions[4].arraySync(),
+                classes: predictions[6].dataSync(),
+                classesDir: this.getClasses,
+                frame: image,
+            });
+            const imageSize = {
+                width: image.offsetWidth,
+                height: image.offsetHeight,
+            };
+            this.renderPredictions(detectionObjects, canvas, imageSize);
+            this.isPredicting = false;
+
+            tf.engine().endScope();
+        },
+
+        async loadModel() {
+            return await tf.loadGraphModel("http://127.0.0.1:8081/model.json");
+        },
+
+        async preprocessImg(image) {
+            const tfimg = tf.browser.fromPixels(image).toInt();
+            const expandedimg = tfimg.transpose([0, 1, 2]).expandDims();
+            return expandedimg;
+        },
+
+        buildDetectedObjects({
+            scores,
+            threshold,
+            boxes,
+            classes,
+            classesDir,
+            frame,
+        }) {
+            const detectionObjects = [];
+
+            scores[0].forEach((score, i) => {
+                // console.log({height: frame.offsetHeight, width: frame.offsetWidth})
+                if (score > threshold) {
+                    const bbox = [];
+                    const minY = boxes[0][i][0] * frame.offsetHeight;
+                    const minX = boxes[0][i][1] * frame.offsetWidth;
+                    const maxY = boxes[0][i][2] * frame.offsetHeight;
+                    const maxX = boxes[0][i][3] * frame.offsetWidth;
+
+                    bbox[0] = minX;
+                    bbox[1] = minY;
+                    bbox[2] = maxX - minX;
+                    bbox[3] = maxY - minY;
+
+                    detectionObjects.push({
+                        class: classes[i],
+                        label: classesDir[classes[i]].name,
+                        score: score.toFixed(4),
+                        bbox: bbox,
+                    });
+                }
+            });
+            return detectionObjects;
+        },
+
+        renderPredictions(detection, canvas, imageSize) {
+            canvas.width = imageSize.width;
+            canvas.height = imageSize.height;
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            // Font options.
+            const font = "16px sans-serif";
+            ctx.font = font;
+            ctx.textBaseline = "top";
+
+            detection.forEach((item) => {
+                const x = item["bbox"][0];
+                const y = item["bbox"][1];
+                const width = item["bbox"][2];
+                const height = item["bbox"][3];
+                const label = `${item["label"]} ${(100 * item["score"]).toFixed(
+                    2
+                )}%`;
+
+                // Draw the bounding box.
+                ctx.strokeStyle = "#00FFFF";
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, y, width, height);
+
+                // Draw the label background.
+                ctx.fillStyle = "#00FFFF";
+                const textWidth = ctx.measureText(label).width;
+                const textHeight = parseInt(font, 10); // base 10
+                ctx.fillRect(x, y, textWidth + 4, textHeight + 4);
+
+                // Draw the text last to ensure it's on top.
+                ctx.fillStyle = "#000000";
+                ctx.fillText(label, x, y);
+            });
+        },
+    },
+
+    computed: {
+        getClasses() {
+            return {
+                1: { id: 1, name: "product" },
+                2: { id: 2, name: "other" },
+            };
+        },
     },
 };
 
@@ -296,4 +450,10 @@ export default {
 //
 // Preview an image before it is uploaded VUEjs
 // https://stackoverflow.com/questions/49106045/preview-an-image-before-it-is-uploaded-vuejs
+//
+// Real-time object detection in the browser using TensorFlow.js
+// https://github.com/hugozanini/TFJS-object-detection
+//
+// TFJS Demo code
+// https://github.com/tensorflow/tfjs/issues/4684#issuecomment-780060126
 </script>
