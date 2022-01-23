@@ -324,7 +324,9 @@ export default {
             const { image, canvas } = this.getImageElement();
 
             if (!this.model) {
+                console.log("Loading Model")
                 this.model = Object.freeze(await this.loadModel());
+                console.log("Loading Model Done")
             }
 
             tf.engine().startScope();
@@ -333,10 +335,10 @@ export default {
                 await this.preprocessImg(image)
             );
             const detectionObjects = this.buildDetectedObjects({
-                scores: predictions[5].arraySync(),
+                scores: predictions[1].arraySync(),
                 threshold: this.threshold,
-                boxes: predictions[4].arraySync(),
-                classes: predictions[6].dataSync(),
+                boxes: predictions[5].arraySync(),
+                classes: predictions[0].dataSync(),
                 classesDir: this.getClasses,
                 frame: image,
             });
@@ -344,7 +346,10 @@ export default {
                 width: image.offsetWidth,
                 height: image.offsetHeight,
             };
-            this.renderPredictions(detectionObjects, canvas, imageSize);
+            if (detectionObjects.length > 0){
+                this.renderPredictions(detectionObjects, canvas, imageSize);
+                this.isPredicted = true
+            }
             this.isPredicting = false;
 
             tf.engine().endScope();
@@ -371,7 +376,6 @@ export default {
             const detectionObjects = [];
 
             scores[0].forEach((score, i) => {
-                // console.log({height: frame.offsetHeight, width: frame.offsetWidth})
                 if (score > threshold) {
                     const bbox = [];
                     const minY = boxes[0][i][0] * frame.offsetHeight;
@@ -387,6 +391,7 @@ export default {
                     detectionObjects.push({
                         class: classes[i],
                         label: classesDir[classes[i]].name,
+                        color: classesDir[classes[i]].color,
                         score: score.toFixed(4),
                         bbox: bbox,
                     });
@@ -416,19 +421,19 @@ export default {
                 )}%`;
 
                 // Draw the bounding box.
-                ctx.strokeStyle = "#00FFFF";
-                ctx.lineWidth = 4;
-                ctx.strokeRect(x, y, width, height);
+                ctx.strokeStyle = item["color"];
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, y+1, width, height);
 
                 // Draw the label background.
-                ctx.fillStyle = "#00FFFF";
+                ctx.fillStyle = item["color"];
                 const textWidth = ctx.measureText(label).width;
                 const textHeight = parseInt(font, 10); // base 10
-                ctx.fillRect(x, y, textWidth + 4, textHeight + 4);
+                ctx.fillRect(x, y, textWidth + 5, textHeight + 5);
 
                 // Draw the text last to ensure it's on top.
-                ctx.fillStyle = "#000000";
-                ctx.fillText(label, x, y);
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText(label, x+1, y+1);
             });
         },
     },
@@ -436,8 +441,9 @@ export default {
     computed: {
         getClasses() {
             return {
-                1: { id: 1, name: "product" },
-                2: { id: 2, name: "other" },
+                1: { id: 1, name: "coca cola", color: "#ff0000" },
+                2: { id: 2, name: "floridina", color: "#2600ff" },
+                3: { id: 3, name: "good day", color: "#1eff00" },
             };
         },
     },
@@ -456,4 +462,9 @@ export default {
 //
 // TFJS Demo code
 // https://github.com/tensorflow/tfjs/issues/4684#issuecomment-780060126
+// 
+// ERROR 
+//      - TensorList shape mismatch:  Shapes -1 and 3
+//          - Update tfjs 3.1 
+
 </script>
