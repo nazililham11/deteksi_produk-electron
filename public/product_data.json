@@ -1,0 +1,5 @@
+[
+    { "id": 1, "name": "Coca-Cola", "color": "#ff0000", "price": 5000 },
+    { "id": 2, "name": "Floridina", "color": "#2600ff", "price": 3000 },
+    { "id": 3, "name": "Good Day",  "color": "#1eff00", "price": 7000 }
+]

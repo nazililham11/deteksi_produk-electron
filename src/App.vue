@@ -1,470 +1,253 @@
 <template>
-    <div class="container-fluid p-2">
-        <div class="row p-2">
-            <!-- Photo -->
-            <div class="col-lg-6 col-12 p-2">
-                <div class="card p-2">
+    <div class="container-fluid p-2" id="container">
+        <!-- Header -->
+        <div class="row p-2 d-none">
+            <div class="col-12">
+                <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Object Detection</h5>
-
-                        <!-- Buttons -->
-                        <div class="d-flex flex-row justify-content-between">
-                            <div
-                                class="btn-group"
-                                role="group"
-                                aria-label="Basic example"
-                            >
-                                <!-- From Camera -->
-                                <div
-                                    @click="selectDetectionFrom('camera')"
-                                    class="btn"
-                                    :class="
-                                        detectFrom != 'camera'
-                                            ? 'btn-outline-primary'
-                                            : 'btn-primary'
-                                    "
-                                >
-                                    Camera
-                                </div>
-
-                                <!-- From File -->
-                                <div
-                                    @click="selectDetectionFrom('file')"
-                                    class="btn"
-                                    :class="
-                                        detectFrom != 'file'
-                                            ? 'btn-outline-primary'
-                                            : 'btn-primary'
-                                    "
-                                >
-                                    File
-                                </div>
-
-                                <!-- From URL -->
-                                <div
-                                    @click="selectDetectionFrom('url')"
-                                    class="btn"
-                                    :class="
-                                        detectFrom != 'url'
-                                            ? 'btn-outline-primary'
-                                            : 'btn-primary'
-                                    "
-                                >
-                                    URL
-                                </div>
-                            </div>
-
-                            <div
-                                class="btn"
-                                :class="{
-                                    disabled: !isImageReady,
-                                    'btn-success': !isPredicting,
-                                    'btn-warning': isPredicting,
-                                }"
-                                @click="predict"
-                            >
-                                <span
-                                    v-show="isPredicting"
-                                    class="spinner-border spinner-border-sm"
-                                    role="status"
-                                    aria-hidden="true"
-                                ></span>
-                                {{ isPredicting ? "Predicting.." : "Predict" }}
-                            </div>
-                        </div>
-
-                        <hr />
-
-                        <!-- From URL -->
-                        <div v-show="detectFrom == 'url'">
-                            <div class="d-flex flex-row mb-2">
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    id="image-url"
-                                    placeholder="Image URL"
-                                    v-model="imageUrl"
-                                />
-                                <div @click="getImage" class="btn btn-primary">
-                                    Get
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- From File -->
-                        <div v-show="detectFrom == 'file'">
-                            <input
-                                class="mb-2"
-                                type="file"
-                                @change="fileChanged"
-                            />
-                        </div>
-
-                        <!-- From Camera -->
-                        <div
-                            v-show="detectFrom == 'camera'"
-                            class="flex-column justify-content-center"
-                        >
-                            <div class="d-flex flex-row">
-                                <div
-                                    @click="toggleCamera"
-                                    class="btn"
-                                    :class="
-                                        isLoading
-                                            ? 'btn-warning'
-                                            : !isCameraOpen
-                                            ? 'btn-primary'
-                                            : 'btn-danger'
-                                    "
-                                >
-                                    <span
-                                        v-show="isLoading"
-                                        class="spinner-border spinner-border-sm"
-                                        role="status"
-                                        aria-hidden="true"
-                                    ></span>
-                                    {{
-                                        isLoading
-                                            ? "Loading Camera"
-                                            : !isCameraOpen
-                                            ? "Open Camera"
-                                            : "Close Camera"
-                                    }}
-                                </div>
-                                <div
-                                    v-show="!isImageReady"
-                                    @click="takePhoto"
-                                    class="btn btn-success mx-2"
-                                    :class="{ disabled: !isCameraOpen }"
-                                >
-                                    Capture
-                                </div>
-
-                                <div
-                                    v-show="isImageReady"
-                                    @click="resetTakedPhoto"
-                                    class="btn btn-warning mx-2"
-                                >
-                                    Reset
-                                </div>
-                            </div>
-
-                            <video
-                                v-show="isCameraOpen && !isImageReady"
-                                id="camera"
-                                class="my-2"
-                                ref="camera"
-                                autoPlay
-                                :width="cameraSize.width"
-                                :height="cameraSize.height"
-                            ></video>
-                        </div>
-
-                        <!-- Prediction -->
-                        <div style="position: relative">
-                            <img
-                                style="position: absolute"
-                                v-show="isImageReady"
-                                @load="imageLoaded"
-                                :src="predictImageUrl"
-                                alt="image"
-                                crossorigin="anonymous"
-                                class="img-fluid mt-2"
-                                id="predicted-img"
-                            />
-
-                            <canvas
-                                v-show="isCameraOpen && isImageReady"
-                                id="photo-taken"
-                                style="position: absolute"
-                                class="my-2"
-                                ref="canvas"
-                                :width="cameraSize.width"
-                                :height="cameraSize.height"
-                            ></canvas>
-
-                            <canvas
-                                v-show="isPredicted"
-                                style="position: absolute"
-                                id="prediction-result"
-                                class="my-2"
-                            ></canvas>
+                        <div class="d-flex flex-row align-items-center">
+                            <div class="card-title flex-fill">Header</div>
+                            <div class="btn btn-outline-primary">Checkout</div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="row p-2">
+            <!-- Left panel -->
+            <div class="col-6">
+                <!-- Add from image -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-title">Deteksi gambar</div>
+                        <hr />
+
+                        <!-- Image -->
+                        <div
+                            class="
+                                d-flex
+                                align-items-center
+                                justify-content-center
+                                m-1
+                            "
+                        >
+                            <img
+                                v-show="!isPredicted"
+                                class="img-fluid"
+                                :src="image_url"
+                                id="predict-image"
+                                alt="Product Image"
+                            />
+                            <canvas
+                                v-show="isPredicted"
+                                class="img-fluid"
+                                id="prediction-result"
+                            ></canvas>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex flex-column align-items-start">
+                            <input
+                                class="flex-fill m-1"
+                                type="file"
+                                @change="fileChanged"
+                            />
+                            <buttton
+                                class="btn btn-outline-primary m-1"
+                                :disabled="isLoading"
+                                @click="predict"
+                            >
+                                Deteksi
+                            </buttton>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual add -->
+                <div class="card d-none">
+                    <div class="card-body">
+                        <div class="card-title">Manual</div>
+                        <hr />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right panel -->
+            <div class="col-6">
+                <table class="table table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Produk</th>
+                            <th scope="col">Harga</th>
+                            <th scope="col">Banyak</th>
+                            <th scope="col">Total</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="!invoice.length">
+                            <td class="text-center" colspan="5">
+                                ---No item---
+                            </td>
+                        </tr>
+                        <tr v-for="(item, index) in invoice" :key="index">
+                            <th scope="row">{{ index + 1 }}</th>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.price }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.price * item.quantity }}</td>
+                            <td class="col-fit">
+                                <button
+                                    class="btn btn-sm btn-danger mx-1"
+                                    @click="deleteInvoice(index)"
+                                >
+                                    Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th scope="col" colspan="4">Total</th>
+                            <th scope="col">
+                                {{ invoiceDetails.total }}
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
     </div>
 </template>
 
 <script>
-import * as tf from "@tensorflow/tfjs";
-
-tf.setBackend("webgl");
+import * as Predict from "./plugins/Predict.js";
 
 export default {
     name: "App",
     data() {
         return {
-            isLoading: false,
-            isCameraOpen: false,
-            isImageReady: false,
-            isPredicting: false,
-            isPredicted: false,
-            threshold: 0.6,
-            detectFrom: "camera",
-            cameraSize: { width: 600, height: 500 }, 
-            predictImageUrl: "",
-            imageUrl: "",
+            image_url: "",
             model: null,
+            invoice: [],
+            isPredicted: false,
+            isLoading: false,
+            classes: [],
         };
     },
     methods: {
-        toggleCamera() {
-            if (this.isCameraOpen) {
-                this.isCameraOpen = false;
-                this.stopCameraStream();
-            } else {
-                this.isCameraOpen = true;
-                this.createCameraElement();
-            }
-        },
-
-        createCameraElement() {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                this.isLoading = true;
-
-                const constraints = (window.constraints = {
-                    audio: false,
-                    video: true,
-                });
-
-                navigator.mediaDevices
-                    .getUserMedia(constraints)
-                    .then((stream) => {
-                        this.isLoading = false;
-                        this.isCameraOpen = true;
-                        this.$refs.camera.srcObject = stream;
-                    })
-                    .catch(() => {
-                        this.isLoading = false;
-                        alert(
-                            "The browser may didn't support or there is some errors."
-                        );
-                    });
-            }
-        },
-
-        stopCameraStream() {
-            let tracks = this.$refs.camera.srcObject.getTracks();
-            tracks.forEach((track) => {
-                track.stop();
-            });
-        },
-
-        takePhoto() {
-            const context = this.$refs.canvas.getContext("2d");
-            context.drawImage(
-                this.$refs.camera,
-                0,
-                0,
-                this.cameraSize.width,
-                this.cameraSize.height
-            );
-            this.isImageReady = true;
-        },
-
-        resetTakedPhoto() {
-            this.isImageReady = false;
-        },
-
-        selectDetectionFrom(selected) {
-            if (selected == this.detectFrom) return;
-
-            if (this.detectFrom == "camera" && this.isCameraOpen) {
-                this.isCameraOpen = false;
-                this.stopCameraStream();
-            }
-
-            this.imageUrl = "";
-            this.predictImageUrl = "";
-            this.isImageReady = false;
-
-            this.detectFrom = selected;
-        },
-
-        getImage() {
-            if (this.predictImageUrl != this.imageUrl)
-                this.predictImageUrl = this.imageUrl;
-        },
-
-        fileChanged(event) {
-            const file = event.target.files[0];
-            this.predictImageUrl = URL.createObjectURL(file);
-        },
-
-        imageLoaded() {
-            this.isImageReady = true;
-        },
-
-        getImageElement() {
-            return {
-                image:
-                    this.detectFrom == "camera"
-                        ? document.getElementById("photo-taken")
-                        : document.getElementById("predicted-img"),
-                canvas: document.getElementById("prediction-result"),
-            };
-        },
-
-        async predict() {
-            if (this.isPredicting || !this.isImageReady) return;
-            this.isPredicting = true;
-
-            const { image, canvas } = this.getImageElement();
-
-            if (!this.model) {
-                console.log("Loading Model")
-                this.model = Object.freeze(await this.loadModel());
-                console.log("Loading Model Done")
-            }
-
-            tf.engine().startScope();
-
-            const predictions = await this.model.executeAsync(
-                await this.preprocessImg(image)
-            );
-            const detectionObjects = this.buildDetectedObjects({
-                scores: predictions[1].arraySync(),
-                threshold: this.threshold,
-                boxes: predictions[5].arraySync(),
-                classes: predictions[0].dataSync(),
-                classesDir: this.getClasses,
-                frame: image,
-            });
-            const imageSize = {
-                width: image.offsetWidth,
-                height: image.offsetHeight,
-            };
-            if (detectionObjects.length > 0){
-                this.renderPredictions(detectionObjects, canvas, imageSize);
-                this.isPredicted = true
-            }
-            this.isPredicting = false;
-
-            tf.engine().endScope();
-        },
-
         async loadModel() {
-            return await tf.loadGraphModel("http://127.0.0.1:8081/model.json");
+            this.model = Object.freeze(await Predict.loadModel("/model/model.json"));
+        },
+        async loadClasses() {
+            this.classes = await fetch("/product_data.json").then((r) => {
+                return r.json();
+            });
+        },
+        init() {
+            this.isPredicted = false;
+            this.image_url = "/product.png";
         },
 
-        async preprocessImg(image) {
-            const tfimg = tf.browser.fromPixels(image).toInt();
-            const expandedimg = tfimg.transpose([0, 1, 2]).expandDims();
-            return expandedimg;
-        },
-
-        buildDetectedObjects({
-            scores,
-            threshold,
-            boxes,
-            classes,
-            classesDir,
-            frame,
-        }) {
-            const detectionObjects = [];
-
-            scores[0].forEach((score, i) => {
-                if (score > threshold) {
-                    const bbox = [];
-                    const minY = boxes[0][i][0] * frame.offsetHeight;
-                    const minX = boxes[0][i][1] * frame.offsetWidth;
-                    const maxY = boxes[0][i][2] * frame.offsetHeight;
-                    const maxX = boxes[0][i][3] * frame.offsetWidth;
-
-                    bbox[0] = minX;
-                    bbox[1] = minY;
-                    bbox[2] = maxX - minX;
-                    bbox[3] = maxY - minY;
-
-                    detectionObjects.push({
-                        class: classes[i],
-                        label: classesDir[classes[i]].name,
-                        color: classesDir[classes[i]].color,
-                        score: score.toFixed(4),
-                        bbox: bbox,
-                    });
+        addInvoiceItems(items) {
+            items.forEach((item) => {
+                let itemExist = false;
+                for (let index = 0; index < this.invoice.length; index++) {
+                    if (item.class.id == this.invoice[index].id) {
+                        itemExist = true;
+                        this.invoice[index].quantity++;
+                        // this.invoice[index].price += item.class.price;
+                        break;
+                    }
+                }
+                if (!itemExist) {
+                    this.invoice.push({ ...item.class, quantity: 1 });
                 }
             });
-            return detectionObjects;
         },
 
-        renderPredictions(detection, canvas, imageSize) {
-            canvas.width = imageSize.width;
-            canvas.height = imageSize.height;
-            const ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        deleteInvoice(index) {
+            if (this.invoice.length > -1) {
+                this.invoice.splice(index, 1);
+            }
+        },
 
-            // Font options.
-            const font = "16px sans-serif";
-            ctx.font = font;
-            ctx.textBaseline = "top";
+        // File methods
+        fileChanged(event) {
+            const file = event.target.files[0];
+            this.image_url = URL.createObjectURL(file);
+            this.isPredicted = false;
+        },
 
-            detection.forEach((item) => {
-                const x = item["bbox"][0];
-                const y = item["bbox"][1];
-                const width = item["bbox"][2];
-                const height = item["bbox"][3];
-                const label = `${item["label"]} ${(100 * item["score"]).toFixed(
-                    2
-                )}%`;
+        // Prediction
+        async predict() {
+            this.isPredicted = false;
+            this.isLoading = true;
+            const image = document.getElementById("predict-image");
+            const canvas = document.getElementById("prediction-result");
 
-                // Draw the bounding box.
-                ctx.strokeStyle = item["color"];
-                ctx.lineWidth = 3;
-                ctx.strokeRect(x, y+1, width, height);
+            if (!this.isModelLoaded)
+                return 
 
-                // Draw the label background.
-                ctx.fillStyle = item["color"];
-                const textWidth = ctx.measureText(label).width;
-                const textHeight = parseInt(font, 10); // base 10
-                ctx.fillRect(x, y, textWidth + 5, textHeight + 5);
+            const predictions = await this.model.executeAsync(
+                await Predict.preprocessImg(image)
+            );
 
-                // Draw the text last to ensure it's on top.
-                ctx.fillStyle = "#ffffff";
-                ctx.fillText(label, x+1, y+1);
-            });
+            const detectionObjects = Predict.getDetectionObjects(
+                predictions,
+                0.5,
+                this.classes,
+                image
+            );
+
+            if (detectionObjects.length > 0) {
+                console.log("object detected", detectionObjects.length);
+                this.addInvoiceItems(detectionObjects);
+                Predict.renderPredictions(detectionObjects, canvas, image);
+                this.isPredicted = true;
+            }
+            this.isLoading = false
         },
     },
-
     computed: {
-        getClasses() {
+        invoiceDetails() {
             return {
-                1: { id: 1, name: "coca cola", color: "#ff0000" },
-                2: { id: 2, name: "floridina", color: "#2600ff" },
-                3: { id: 3, name: "good day", color: "#1eff00" },
+                items: this.invoice.length,
+                total: this.invoice.reduce(
+                    (sum, item) => sum + item.price * item.quantity,
+                    0
+                ),
             };
         },
+        isModelLoaded() {
+            return this.model != null;
+        },
+    },
+    async mounted() {
+        console.log(Predict);
+        this.init();
+        this.isLoading = true;
+        await this.loadModel();
+        await this.loadClasses();
+        this.isLoading = false;
     },
 };
-
-// Refrensi script
-//
-// Vue Webcam Camera Capture
-// https://codepen.io/ditarahma08/pen/GRRxZLW?editors=1010
-//
-// Preview an image before it is uploaded VUEjs
-// https://stackoverflow.com/questions/49106045/preview-an-image-before-it-is-uploaded-vuejs
-//
-// Real-time object detection in the browser using TensorFlow.js
-// https://github.com/hugozanini/TFJS-object-detection
-//
-// TFJS Demo code
-// https://github.com/tensorflow/tfjs/issues/4684#issuecomment-780060126
-// 
-// ERROR 
-//      - TensorList shape mismatch:  Shapes -1 and 3
-//          - Update tfjs 3.1 
-
 </script>
+
+<style>
+#container {
+    min-width: 1200px;
+    overflow: auto;
+}
+#predict-image,
+#prediction-result {
+    max-width: 550px;
+    max-height: 450px;
+}
+.col-fit {
+    width: 1%;
+    white-space: nowrap;
+}
+</style>
