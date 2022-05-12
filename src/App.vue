@@ -1,122 +1,154 @@
 <template>
-    <div class="container-fluid p-2" id="container">
-        <!-- Header -->
-        <div class="row p-2 d-none">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex flex-row align-items-center">
-                            <div class="card-title flex-fill">Header</div>
-                            <div class="btn btn-outline-primary">Checkout</div>
+    <div class="grey lighten-3 main-container">
+
+        <!-- File Input Instances -->
+        <input type="file" name="image_input" id="image_input" @change="fileChanged" accept="image/jpg, image/jpeg, image/png">
+
+
+        <div class="row">
+            <div class="col s12">
+                <div class="card z-depth-3 flex-row" >
+                    <div class="flex-col w-50 grey darken-2">
+                        <div id="image_wrapper" class="image-wrapper flex-fill">
+                                                    
+                            <!-- Image Shown -->
+                            <img id="predict-image" :src="image_url" alt="Image" v-show="isImageLoaded" @load="ImageLoad">
+                            <span class="image-title" v-show="isImageLoaded">
+                                <a class="btn red" @click="clearImage">
+                                    <span class="valign-wrapper">
+                                        <i class="material-icons mr-2">close</i>
+                                        Reset Gambar
+                                    </span>
+                                </a>
+                            </span>
+
+                            <!-- Predicted Mask -->
+                            <div class="predicted-mask" v-show="isPredicted">
+                                <canvas id="prediction-result"></canvas>
+                            </div>
+
+                            <!-- Loading Mask -->
+                            <div class="loading-mask white-text" v-show="isPredicting">
+                                 <div class="preloader-wrapper big active">
+                                    <div class="spinner-layer spinner-blue-only">
+                                        <div class="circle-clipper left">
+                                            <div class="circle"></div>
+                                        </div><div class="gap-patch">
+                                            <div class="circle"></div>
+                                        </div><div class="circle-clipper right">
+                                            <div class="circle"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <h6>Memproses</h6>
+                            </div>
+                            
+                            <!-- Insert Image -->
+                            <div class="flex-col insert-image" v-show="!isImageLoaded">
+                                <i class="material-icons grey-text text-darken-3">add_a_photo</i>
+
+                                <a class="btn waves-effect waves-light">
+                                    <label class="valign-wrapper white-text" for="image_input" style="font-size: 14px">
+                                        <i class="material-icons mr-2">add</i>
+                                        Input gambar
+                                    </label>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-col w-50">
+                        <div class="card-content flex-fill">
+
+                            <!-- Model Status -->
+                            <h6 class="green-text valign-wrapper" style="height: 2rem">
+                                <i class="material-icons mr-2" v-if="!isLoadingModel">check_circle</i>
+                                <span class="loader mr-2" v-else></span>
+                                <span>{{ isLoadingModel ? "Loading Model" : "Models Loaded" }}</span>
+                            </h6>
+
+                            <!-- Total -->
+                            <div class="right-align grey-text text-darken-3 invoice-total">
+                                <h6>Total</h6>
+                                <h3>Rp.{{ numFormat(invoiceDetails.total, 2, 3) }}-</h3>
+                            </div>
+
+                            <div class="divider grey darken-3 my-4"></div>
+
+                            <!-- Invaice Table -->
+                            <div id="table-wrapper">
+                                <div id="table-scroll">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th class="col-num"><span class="text"></span></th>
+                                                <th class="col-title"><span class="text">Nama Item</span></th>
+                                                <th class="col-qty"><span class="text">Qty</span></th>
+                                                <th class="col-price"><span class="text">Harga</span></th>
+                                                <th class="col-total"><span class="text">Total</span></th>
+                                            </tr>
+                                        </thead>
+    
+                                        <tbody>
+                                            <tr v-if="!invoice.length">
+                                                <td class="center-align grey-text" colspan="5">
+                                                    <i class="material-icons" style="font-size: 5rem">production_quantity_limits</i>
+                                                    <h5 style="font-size: 1.64rem">
+                                                        Tidak ada barang
+                                                    </h5>
+                                                </td>
+                                            </tr>
+                                            <tr v-else v-for="(item, index) in invoice" :key="index">
+                                                <td class="col-num">{{ index+1 }}</td>
+                                                <td class="col-title">{{ item.name }}</td>
+                                                <td class="col-qty">{{ item.quantity }}</td>
+                                                <td class="col-price">Rp.{{ numFormat(item.price, 0, 3) }}</td>
+                                                <td class="col-total">Rp.{{ numFormat(item.quantity * item.price, 0, 3) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+
+                        </div>
+
+                        <div class="card-action">
+                            
+                            <!-- Cancel Prediction Button -->
+                            <a class="btn waves-effect waves-light mx-1 red" v-if="isPredicting">
+                                <span class="valign-wrapper">
+                                    <i class="material-icons mr-2">close</i>
+                                    Batal
+                                </span>
+                            </a>
+
+                            <!-- Prediction Button -->
+                            <a class="btn waves-effect waves-light mx-1" @click="predict" v-else>
+                                <span class="valign-wrapper">
+                                    <i class="material-icons mr-2">filter_center_focus</i>
+                                    Deteksi
+                                </span>
+                            </a>
+
+                            <!-- Checkout Button -->
+                            <a class="btn waves-effect waves-light mx-1" v-show="false">
+                                <span class="valign-wrapper">
+                                    <i class="material-icons mr-2">shopping_cart</i>
+                                    Checkout
+                                </span>
+                            </a>
+                            
+                            <!-- Reset Button -->
+                            <a class="btn waves-effect waves-light blue mx-1">
+                                <span class="valign-wrapper">
+                                    <i class="material-icons mr-2">cached</i>
+                                    Reset Invoice
+                                </span>
+                            </a>
+
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="row p-2">
-            <!-- Left panel -->
-            <div class="col-6">
-                <!-- Add from image -->
-                <div class="card">
-                    <div class="card-body">
-                        <div class="card-title">Deteksi gambar</div>
-                        <hr />
-
-                        <!-- Image -->
-                        <div
-                            class="
-                                d-flex
-                                align-items-center
-                                justify-content-center
-                                m-1
-                            "
-                        >
-                            <img
-                                v-show="!isPredicted"
-                                class="img-fluid"
-                                :src="image_url"
-                                id="predict-image"
-                                alt="Product Image"
-                            />
-                            <canvas
-                                v-show="isPredicted"
-                                class="img-fluid"
-                                id="prediction-result"
-                            ></canvas>
-                        </div>
-
-                        <!-- Buttons -->
-                        <div class="d-flex flex-column align-items-start">
-                            <input
-                                class="flex-fill m-1"
-                                type="file"
-                                @change="fileChanged"
-                            />
-                            <buttton
-                                class="btn btn-outline-primary m-1"
-                                :disabled="isLoading"
-                                @click="predict"
-                            >
-                                Deteksi
-                            </buttton>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manual add -->
-                <div class="card d-none">
-                    <div class="card-body">
-                        <div class="card-title">Manual</div>
-                        <hr />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right panel -->
-            <div class="col-6">
-                <table class="table table-bordered">
-                    <thead class="table-dark">
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Produk</th>
-                            <th scope="col">Harga</th>
-                            <th scope="col">Banyak</th>
-                            <th scope="col">Total</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="!invoice.length">
-                            <td class="text-center" colspan="5">
-                                ---No item---
-                            </td>
-                        </tr>
-                        <tr v-for="(item, index) in invoice" :key="index">
-                            <th scope="row">{{ index + 1 }}</th>
-                            <td>{{ item.name }}</td>
-                            <td>{{ item.price }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>{{ item.price * item.quantity }}</td>
-                            <td class="col-fit">
-                                <button
-                                    class="btn btn-sm btn-danger mx-1"
-                                    @click="deleteInvoice(index)"
-                                >
-                                    Hapus
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th scope="col" colspan="4">Total</th>
-                            <th scope="col">
-                                {{ invoiceDetails.total }}
-                            </th>
-                        </tr>
-                    </tfoot>
-                </table>
             </div>
         </div>
     </div>
@@ -129,26 +161,36 @@ export default {
     name: "App",
     data() {
         return {
-            image_url: "",
             model: null,
+            isLoadingModel: false,
+            
+            image_url: "",
+            imageSize: { width: 0, height: 0 },
+            isImageLoaded: false,
+            isImageValid: false,
+
+            isPredicting: false,
             invoice: [],
             isPredicted: false,
             isLoading: false,
             classes: [],
+            base_url: '/',
         };
     },
     methods: {
         async loadModel() {
-            this.model = Object.freeze(await Predict.loadModel("/model/model.json"));
+            this.isLoadingModel = true
+            this.model = Object.freeze(await Predict.loadModel(this.base_url+"model/model.json"));
+            this.isLoadingModel = false
         },
         async loadClasses() {
-            this.classes = await fetch("/product_data.json").then((r) => {
+            this.classes = await fetch(this.base_url+"product_data.json").then((r) => {
                 return r.json();
             });
         },
         init() {
             this.isPredicted = false;
-            this.image_url = "/product.png";
+            this.image_url = this.base_url+"product.png";
         },
 
         addInvoiceItems(items) {
@@ -178,11 +220,13 @@ export default {
         fileChanged(event) {
             const file = event.target.files[0];
             this.image_url = URL.createObjectURL(file);
-            this.isPredicted = false;
+            if (this.image_url != "")
+                this.isImageLoaded = true
         },
 
         // Prediction
         async predict() {
+            this.isPredicting = true
             this.isPredicted = false;
             this.isLoading = true;
             const image = document.getElementById("predict-image");
@@ -196,12 +240,9 @@ export default {
             );
 
             const detectionObjects = Predict.getDetectionObjects(
-                predictions,
-                0.5,
-                this.classes,
-                image
+                predictions, 0.5, this.classes, image
             );
-
+            console.log({detectionObjects})
             if (detectionObjects.length > 0) {
                 console.log("object detected", detectionObjects.length);
                 this.addInvoiceItems(detectionObjects);
@@ -209,7 +250,29 @@ export default {
                 this.isPredicted = true;
             }
             this.isLoading = false
+            this.isPredicting = false
         },
+        clearImage(){
+            this.image_url = ""
+            this.isImageLoaded = false
+            this.isImageValid = false
+            this.imageSize = { width: 0, height: 0 }
+            this.isPredicted = false
+        },
+        ImageLoad(e){
+            const { width, height } = e.target
+            const parent = document.getElementById('image_wrapper').getBoundingClientRect()
+            if (width < parent.width && height < parent.height){
+                document.getElementById('predict-image').classList.add("h-100");
+            }
+            this.imageSize
+        },
+        numFormat(val, n, x){
+            if (isNaN(val))
+                return '-'
+            var re = '\\d(?=(\\d{' + (x || 3) + '})+' + (n > 0 ? '\\.' : '$') + ')';
+            return val.toFixed(Math.max(0, ~~n)).replace(new RegExp(re, 'g'), '$&,');
+        }
     },
     computed: {
         invoiceDetails() {
@@ -237,17 +300,5 @@ export default {
 </script>
 
 <style>
-#container {
-    min-width: 1200px;
-    overflow: auto;
-}
-#predict-image,
-#prediction-result {
-    max-width: 550px;
-    max-height: 450px;
-}
-.col-fit {
-    width: 1%;
-    white-space: nowrap;
-}
+@import './style.css';
 </style>

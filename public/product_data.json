@@ -1,5 +1,6 @@
-[
-    { "id": 1, "name": "Coca-Cola", "color": "#ff0000", "price": 5000 },
-    { "id": 2, "name": "Floridina", "color": "#2600ff", "price": 3000 },
-    { "id": 3, "name": "Good Day",  "color": "#1eff00", "price": 7000 }
+[   
+    { "id": 0, "name": "", "color": "", "price": 0 },
+    { "id": 1, "name": "Coca-Cola", "color": "#f44336", "price": 5000 },
+    { "id": 2, "name": "Floridina", "color": "#2196f3", "price": 3000 },
+    { "id": 3, "name": "Good Day",  "color": "#4caf50", "price": 7000 }
 ]
