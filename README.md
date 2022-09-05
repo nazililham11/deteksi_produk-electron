@@ -1,24 +1,35 @@
-# deteksi_produk-electron
+# Deteksi Produk
+
+## Framework
+- [Vue Js](https://vuejs.org)
+- [Materialize CSS](https://materializecss.com/)
+- [Electron Js](https://www.electronjs.org/)
+
+## Screenshoot
+
+### Tampilan Halaman Deteksi
+![Tampilan Halaman Deteksi](assets/screenshoot-1.png)
+### Tampilan Hasil Deteksi
+![Tampilan Hasil Deteksi](assets/screenshoot-2.png)
+
+## Flowchart Proses Deteksi
+![Tampilan Hasil Deteksi](assets/flowchart_proses_deteksi.png)
+
+## Training Model
+[object_detection_training.ipynb](https://gist.github.com/nazililham11/f65690eb39670f37cfb15793dee99bcb)
+
 
 ## Project setup
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+### Compile untuk development
 ```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
+npm run electron:serve
 ```
 
-### Lints and fixes files
+### Compile untuk production
 ```
-npm run lint
+npm run electron:build
 ```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
