@@ -1,6 +1,10 @@
 <template>
     <!-- File Input Instances -->
-    <input type="file" name="image_input" id="image_input" @change="fileChanged" accept="image/jpg, image/jpeg, image/png">
+    <input type="file" name="image_input" 
+        ref="ref_image_input"
+        id="image_input" 
+        @change="fileChanged" 
+        accept="image/jpg, image/jpeg, image/png">
 
     <div class="card flex-row main-container" >
         <div class="flex-col w-50 grey darken-2">
@@ -8,18 +12,27 @@
                                         
                 <!-- Image Shown -->
                 <img id="predict-image" :src="image_url" alt="Image" v-show="isImageLoaded" @load="ImageLoad">
-                <span class="image-title" v-show="false">
-                    <a class="btn red" @click="clearImage">
+                <img :src="item" :alt="index" 
+                    v-for="(item, index) in detectionBox" :key="index"
+                    v-show="isPredicted && (!detection[index].hide)">
+
+                <span class="image-title" v-if="isPredicted">
+                    <a class="btn btn-small mr-2" 
+                        v-for="(item, index) in groupedItems"
+                        :key="index"
+                        :style="'background-color: '+item.color"
+                        @click="hideDetection(item.id)">
+
                         <span class="valign-wrapper">
                             <i class="material-icons mr-2">close</i>
-                            Reset Gambar
+                            {{ item.name }} ({{ item.count }})
                         </span>
                     </a>
                 </span>
 
                 <!-- Predicted Mask -->
                 <div class="predicted-mask" v-show="isPredicted">
-                    <canvas id="prediction-result"></canvas>
+                    <canvas id="prediction-result" v-show="false"></canvas>
                 </div>
 
                 <!-- Loading Mask -->
@@ -77,9 +90,8 @@
                                 <tr>
                                     <th class="col-num"><span class="text"></span></th>
                                     <th class="col-title"><span class="text">Nama Item</span></th>
-                                    <th class="col-qty"><span class="text">Qty</span></th>
+                                    <th class="col-accuracy"><span class="text">Akurasi</span></th>
                                     <th class="col-price"><span class="text">Harga</span></th>
-                                    <th class="col-total"><span class="text">Total</span></th>
                                 </tr>
                             </thead>
 
@@ -92,12 +104,12 @@
                                         </h5>
                                     </td>
                                 </tr>
-                                <tr v-else v-for="(item, index) in invoice" :key="index">
+                                <tr v-else v-for="(item, index) in detection" :key="index">
                                     <td class="col-num">{{ index+1 }}</td>
-                                    <td class="col-title">{{ item.name }}</td>
-                                    <td class="col-qty">{{ item.quantity }}</td>
-                                    <td class="col-price">Rp.{{ numFormat(item.price, 0, 3) }}</td>
-                                    <td class="col-total">Rp.{{ numFormat(item.quantity * item.price, 0, 3) }}</td>
+                                    <td class="col-title">{{ item.class.name }}</td>
+                                    <td class="col-accuracy">{{ parseFloat(item.score*100).toFixed(1) }}%</td>
+                                    <td class="col-price">Rp.{{ numFormat(item.class.price, 0, 3) }}</td>
+                                    
                                 </tr>
                             </tbody>
                         </table>
@@ -119,7 +131,7 @@
 
                 <!-- Prediction Button -->
                 <a class="btn waves-effect waves-light mx-1" @click="predict" v-else
-                    :class="{'disabled': isPredicting}">
+                    :class="{'disabled': !isImageLoaded || isPredicted}">
                     <span class="valign-wrapper">
                         <i class="material-icons mr-2">filter_center_focus</i>
                         Deteksi
@@ -127,7 +139,7 @@
                 </a>
 
                 <!-- Checkout Button -->
-                <a class="btn waves-effect waves-light mx-1" v-show="false">
+                <a class="btn waves-effect waves-light mx-1" v-show="false" @click="debig">
                     <span class="valign-wrapper">
                         <i class="material-icons mr-2">shopping_cart</i>
                         Checkout
@@ -135,12 +147,17 @@
                 </a>
                 
                 <!-- Reset Button -->
-                <a class="btn waves-effect waves-light blue mx-1" @click="clearImage">
+                <a class="btn waves-effect waves-light blue mx-1" @click="clearImage"
+                    :class="{'disabled': !isImageLoaded}">
                     <span class="valign-wrapper">
                         <i class="material-icons mr-2">cached</i>
                         Reset
                     </span>
                 </a>
+                
+                <span v-if="predictionTime">
+                    <i>Waktu Deteksi : {{predictionTime}} ms</i>
+                </span>
 
             </div>
         </div>
@@ -156,19 +173,32 @@ export default {
         return {
             model: null,
             isLoadingModel: false,
-            
+            detection: [],
+            detectionBox: [],
+
             image_url: "",
             imageSize: { width: 0, height: 0 },
             isImageLoaded: false,
-            isImageValid: false,
 
             isPredicting: false,
             invoice: [],
             isPredicted: false,
             isLoading: false,
             classes: [],
-            base_url: '/',
+            base_url: './',
+            predictionTime: undefined,
         };
+    },
+    watch: {
+        detection(newVal){
+            // console.log('detected',newVal)
+            this.detectionBox = []
+            for (let i = 0; i < newVal.length || 0; i++){
+                const item = newVal[i]
+                this.detectionBox.push(this.renderBoundingBox(item))
+            }
+            // console.log("boxes",this.detectionBox)
+        }
     },
     methods: {
         async loadModel() {
@@ -219,11 +249,11 @@ export default {
 
         // Prediction
         async predict() {
+            const timeStart = Date.now()
             this.isPredicting = true
             this.isPredicted = false;
             this.isLoading = true;
             const image = document.getElementById("predict-image");
-            const canvas = document.getElementById("prediction-result");
 
             if (!this.isModelLoaded)
                 return 
@@ -235,23 +265,28 @@ export default {
             const detectionObjects = Predict.getDetectionObjects(
                 predictions, 0.5, this.classes, image
             );
-            console.log({detectionObjects})
             if (detectionObjects.length > 0) {
-                console.log("object detected", detectionObjects.length);
+                console.log("object detected", detectionObjects);
                 this.addInvoiceItems(detectionObjects);
-                Predict.renderPredictions(detectionObjects, canvas, image);
+                this.detection = detectionObjects
                 this.isPredicted = true;
+                const timeEnd = Date.now()
+                const predict_time = timeEnd - timeStart
+                this.predictionTime = predict_time
+                console.log({predict_time})
             }
             this.isLoading = false
             this.isPredicting = false
         },
         clearImage(){
+            this.detection = []
+            this.$refs.ref_image_input.value = null
             this.image_url = ""
             this.isImageLoaded = false
-            this.isImageValid = false
             this.imageSize = { width: 0, height: 0 }
             this.isPredicted = false
             this.invoice = []
+            this.predictionTime = undefined
         },
         ImageLoad(e){
             const { width, height } = e.target
@@ -266,14 +301,57 @@ export default {
                 return '-'
             var re = '\\d(?=(\\d{' + (x || 3) + '})+' + (n > 0 ? '\\.' : '$') + ')';
             return val.toFixed(Math.max(0, ~~n)).replace(new RegExp(re, 'g'), '$&,');
+        },
+        renderBoundingBox(item){
+            const canvas  = document.getElementById("prediction-result");
+            const image = document.getElementById("predict-image");
+
+            canvas.width = image.offsetWidth;
+            canvas.height = image.offsetHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            
+            // Font options.
+            const font = "16px sans-serif";
+            ctx.font = font;
+            ctx.textBaseline = "top";
+
+            const x = item.bbox[0];
+            const y = item.bbox[1];
+            const width = item.bbox[2];
+            const height = item.bbox[3];
+            const score = (100 * item.score).toFixed(2);
+            const label = `${item.class.name} ${score}%`;
+
+            // Draw the bounding box.
+            ctx.strokeStyle = item.class.color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y + 1, width, height);
+
+            // Draw the label background.
+            ctx.fillStyle = item.class.color;
+            const textWidth = ctx.measureText(label).width;
+            const textHeight = parseInt(font, 7); // base 10
+            ctx.fillRect(x, y, textWidth + 5, textHeight + 5);
+
+            // Draw the text last to ensure it's on top.
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(label, x + 2, y + 2);
+            return canvas.toDataURL('image/png')
+        },
+        hideDetection(classId){
+            this.detection.forEach(e => {
+                if (e.class.id == classId)
+                    e.hide = !(e.hide || false)
+            })
         }
     },
     computed: {
         invoiceDetails() {
             return {
-                items: this.invoice.length,
-                total: this.invoice.reduce(
-                    (sum, item) => sum + item.price * item.quantity,
+                items: this.detection.length,
+                total: this.groupedItems.reduce(
+                    (sum, item) => sum + item.price * item.count,
                     0
                 ),
             };
@@ -281,9 +359,24 @@ export default {
         isModelLoaded() {
             return this.model != null;
         },
+        groupedItems(){
+            let arr = []
+            for (let i = 0; i < this.detection.length; i++){
+                let isExists = false
+                for (let j = 0; j < arr.length; j++) {
+                    if (arr[j].id == this.detection[i].class.id){
+                        isExists = true
+                        arr[j].count++
+                    }
+                }
+                if (!isExists){
+                    arr.push({...this.detection[i].class, count: 1})
+                } 
+            }
+            return arr
+        },
     },
     async mounted() {
-        console.log(Predict);
         this.init();
         this.isLoading = true;
         await this.loadModel();

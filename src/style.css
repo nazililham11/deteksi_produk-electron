@@ -16,23 +16,23 @@ td {
 }
 
 .col-num {
-    min-width: 7.5%;
+    min-width: 10%;
 }
 
 .col-title {
-    min-width: 45%;
+    min-width: 55%;
 }
 
 .col-price {
-    min-width: 20%;
+    min-width: 25%;
 }
 
-.col-qty {
-    min-width: 7.5%;
+.col-accuracy {
+    min-width: 10%;
 }
 
 .col-total {
-    min-width: 20%;
+    min-width: 0%;
 }
 
 .w-50 {
@@ -170,9 +170,9 @@ td {
 .image-wrapper img {
     display: block;
     border-radius: 2px 2px 0 0;
-    position: relative;
-    left: 0;
-    right: 0;
+    position: absolute;
+    left: auto;
+    right: auto;
     top: 0;
     bottom: 0;
     max-width: 100%;
@@ -206,7 +206,6 @@ td {
 
 .image-wrapper .predicted-mask {
     position: absolute;
-    background: rgba(21, 21, 21, .75);
     top: 0;
     bottom: 0;
     left: 0;
@@ -216,4 +215,10 @@ td {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+#prediction-result {
+    display: none;
+}
+.predicted-mask img {
+    position: absolute;
 }
