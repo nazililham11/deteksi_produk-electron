@@ -1,6 +1,6 @@
 [   
     { "id": 0, "name": "", "color": "", "price": 0 },
-    { "id": 1, "name": "Coca-Cola", "color": "#f44336", "price": 5000 },
-    { "id": 2, "name": "Floridina", "color": "#2196f3", "price": 3000 },
-    { "id": 3, "name": "Good Day",  "color": "#4caf50", "price": 7000 }
+    { "id": 1, "name": "Coca-Cola", "price": 5000, "color": "#f44336", "font_color": "#ffffff"},
+    { "id": 2, "name": "Floridina", "price": 3000, "color": "#2196f3", "font_color": "#ffffff"},
+    { "id": 3, "name": "Good Day",  "price": 7000, "color": "#4caf50", "font_color": "#ffffff"}
 ]
