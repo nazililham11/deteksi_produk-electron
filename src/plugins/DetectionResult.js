@@ -79,5 +79,4 @@ grouped invoice (Array)
     quantity: 1,
 
 
-[[Prototype]]: Object
 */

@@ -1,209 +1,72 @@
-.main-container {
-    height: 100%;
-    width: 100%;
-    margin: 1rem!important;
-}
 
-h3 {
-    margin-top: 0;
-    margin-bottom: 0;
-}
-
-td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.col-num {
-    min-width: 10%;
-}
-
-.col-title {
-    min-width: 55%;
-}
-
-.col-price {
-    min-width: 25%;
-}
-
-.col-accuracy {
-    min-width: 10%;
-}
-
-.col-total {
-    min-width: 0%;
-}
-
-.w-50 {
-    width: 50%;
-}
-
-.flex-row {
-    display: flex;
-    flex-direction: row;
-}
-
-.flex-col {
-    display: flex;
-    flex-direction: column;
-}
-
-.flex-fill {
-    flex: 1 1 auto !important;
-}
-
-.p-4 {
-    padding: 2rem;
-}
-.mr-1 { margin-right: .5rem }
-.mr-2 { margin-right: 1rem; }
-.mx-1 { margin: .5rem; }
-.my-4 { 
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-}
-
-#table-wrapper {
-    position: relative;
-}
-
-#table-scroll {
-    height: 100%;
-    overflow: auto;
-    margin-top: 20px;
-}
-
-#table-wrapper table {
-    width: 100%;
-}
-
-#table-wrapper table thead th .text {
-    position: absolute;
-    top: -1rem;
-    z-index: 2;
-}
-.insert-image {
-    align-items: center; 
-    justify-content: center; 
-    height: 600px;
-}
-.insert-image>.material-icons {
-    font-size: 5rem; 
-    margin: 1rem;
-}
-#image_input {
-    display: none;
-}
-
-.p-absolute {
-    position: absolute;
-}
-
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* Spinner */
-/* src: https://cssloaders.github.io/ */
-.loader-lg {
-    width: 5rem!important;
-    height: 5rem!important;
-    border: .25em solid currentColor;
-}
-.loader {
-    width: 2rem;
-    height: 2rem;
-    border: .25em solid currentColor;
-    border-bottom-color: transparent;
-    border-radius: 50%;
-    display: inline-block;
-    box-sizing: border-box;
-    animation: rotation 1s linear infinite;
-}
-
-@keyframes rotation {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-} 
-
-/* end of Spinner */
-
-.invoice-total {
-    font-weight: 600
-}
-.image-wrapper {
+.img-container {
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 600px;
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
 }
-.image-wrapper img {
-    display: block;
-    border-radius: 2px 2px 0 0;
+@media screen and (max-width: 768px){
+    .img-container {
+        border-top-right-radius: 0.375rem;
+        border-bottom-left-radius: 0;
+    }
+}
+.img-container img {
     position: absolute;
     left: auto;
     right: auto;
-    top: 0;
-    bottom: 0;
+    top: auto;
+    bottom: auto;
     max-width: 100%;
-    max-height: 600px;
+    max-height: 100%;
 }
-.h-100 {
-    height: 100%;
+.img-container:before{
+    content: "";
+    display: block;
+    padding-top: 100%;
 }
-.image-wrapper .image-title {
-    z-index: 3;
-    color: #fff;
+
+.image-input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
     position: absolute;
+    z-index: 99999;
+    bottom: auto;
+    top: auto;
+    right: auto;
+    left: auto;
+    max-width: 100%;
+}
+
+.image-input>.material-icons {
+    font-size: 3rem
+}
+
+.classes {
+    position: absolute;
+    z-index: 99999;
     bottom: 0;
     left: 0;
     max-width: 100%;
-    padding: 24px;
 }
-.image-wrapper .loading-mask {
+
+.material-icons {
+    vertical-align: sub;
+}
+.loading-mask {
+    background-color: rgba(0, 0, 0, .5);
     position: absolute;
-    background: rgba(21, 21, 21, .75);
-    top: 0;
     bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
-
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-}
-
-.image-wrapper .predicted-mask {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-#prediction-result {
-    display: none;
-}
-.predicted-mask img {
-    position: absolute;
 }

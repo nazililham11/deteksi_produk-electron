@@ -1,3 +1,4 @@
+// src: https://stackoverflow.com/a/14428340
 const NumFormat = (val, n, x) => {
     if (isNaN(val))
         return '-'
@@ -14,18 +15,31 @@ const AccuracyFormat = (value) => {
     return parseFloat(value*100).toFixed(1) + "%"
 }
 
-const CreateBBoxUrlData = (virtual_canvas, item, imageSize) => {
-    const canvas  = document.getElementById(virtual_canvas)
-    canvas.width = imageSize.width
-    canvas.height = imageSize.height
-    console.log(imageSize)
+const ScaleBetweenResolution = (from_width, to_width) => {
+    const scale = to_width / from_width
+    // console.log({from_width, to_width, scale})
+    return scale
+}
 
+const CreateBBoxUrlData = (virtual_canvas, item, image) => {
+    const canvas  = document.getElementById(virtual_canvas)
+    canvas.width = image.naturalWidth
+    canvas.height = image.naturalHeight
+
+    // Mencari skala antara gambar resolusi pada layar dengan resolusi original 
+    const scale = ScaleBetweenResolution(image.offsetWidth, image.naturalWidth)
+
+    // Besrsihkan canvas
     const ctx = canvas.getContext("2d")
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
     
-    // Font options.
-    const font = "16px sans-serif"
-    ctx.font = font
+    // Config + scaling
+    const font_size = parseInt(14  * scale)
+    const margin = parseInt(2 * scale)
+    const lineWidth = parseInt(4 * scale)
+    
+    // Font
+    ctx.font = font_size+"px sans-serif"
     ctx.textBaseline = "top"
 
     // Bounding box
@@ -35,25 +49,23 @@ const CreateBBoxUrlData = (virtual_canvas, item, imageSize) => {
     const height = item.bbox[3]
     const score = AccuracyFormat(item.score)
     const label = `${item.class.name} ${score}`
-    const padding = 6
-    const margin = 3
 
-    // Draw the bounding box.
+    // Gambar bounding box pada canvas
     ctx.strokeStyle = item.class.color
-    ctx.lineWidth = 5
-    ctx.strokeRect(x, y + 1, width, height)
+    ctx.lineWidth = lineWidth
+    ctx.strokeRect(x, y, width, height)
 
-    // Draw the label background.
+    // Gambar background untuk label
     ctx.fillStyle = item.class.color
     const textWidth = ctx.measureText(label).width
-    const textHeight = parseInt(font, 7)
-    ctx.fillRect(x, y, textWidth + padding, textHeight + padding)
+    const textHeight = font_size
+    ctx.fillRect(x, y, textWidth + (margin*2), textHeight + (margin*2))
 
-    // Draw the text last to ensure it's on top.
-    // ctx.fillStyle = "#ffffff"
+    // Gambar text
     ctx.fillStyle = item.class.font_color
     ctx.fillText(label, x + margin, y + margin)
 
+    // Convert to image data url
     return canvas.toDataURL('image/png')
 }
 

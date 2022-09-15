@@ -1,130 +1,116 @@
 <template>
-    <!-- Predicted Result (Hidden Instances) -->
-    <canvas id="temp-canvas" v-show="false"></canvas>
+    <div class="container-fluid">
+        <!-- Predicted Result (Hidden Instances) -->
+        <canvas id="temp-canvas" v-show="false"></canvas>
 
-    <!-- File Input Instances (Hidden Instances) -->
-    <input
-        type="file"
-        name="image_input"
-        ref="ref_image_input"
-        id="image_input"
-        @change="_fileInputChanged"
-        accept="image/jpg, image/jpeg, image/png"
-    />
+        <!-- File Input Instances (Hidden Instances) -->
+        <input
+            type="file"
+            v-show="false"
+            name="image_input"
+            ref="ref_image_input"
+            id="image_input"
+            @change="_fileInputChanged"
+            accept="image/jpg, image/jpeg, image/png"
+        />
 
-    <div class="card flex-row main-container">
-        <div class="flex-col w-50 grey darken-2">
-            <div id="image_wrapper" class="image-wrapper flex-fill">
-                <!-- Image -->
-                <img
-                    id="predict-image"
-                    :src="imageUrl"
-                    alt="Image"
-                    v-show="isImageLoaded"
-                    @load="_imageLoaded"
-                />
+        <div class="card m-3 shadow">
+            <div class="row g-0 card-root" style="min-height: 35rem">
+                <div class="col-md-6 col-12 bg-dark img-container">
+                    <!-- Image -->
+                    <img
+                        id="predict-image"
+                        alt="Image"
+                        v-show="isImageLoaded"
+                        class="img-fluid"
+                        :src="imageUrl"
+                    />
 
-                <!-- Bounding Boxes -->
-                <img
-                    :src="item.bbox_data"
-                    :alt="index"
-                    v-for="(item, index) in boundingBoxes"
-                    :key="index"
-                    v-show="isPredicted || item.isVisible"
-                />
-
-                <!-- Hide/Show Buttons -->
-                <span class="image-title" v-if="isPredicted">
-                    <a
-                        class="btn btn-small mr-2"
-                        v-for="(item, index) in groupedInvoice"
+                    <!-- Bounding Boxes -->
+                    <img
+                        :src="item.bbox_data"
+                        :alt="index"
                         :key="index"
-                        :style="'background-color: ' + item.color"
-                        @click="_toggleVisiblityPressed(index)"
-                    >
-                        <span class="valign-wrapper">
-                            <i class="material-icons mr-2">close</i>
-                            {{ item.name }} ({{ item.quantity }})
-                        </span>
-                    </a>
-                </span>
+                        v-for="(item, index) in boundingBoxes"
+                        v-show="item.isVisible"
+                    />
 
-                <!-- Loading Mask -->
-                <div class="loading-mask white-text" v-show="isPredicting">
-                    <span class="loader loader-lg mr-2 blue-text"></span>
-                    <h6>Memproses</h6>
-                </div>
-
-                <!-- Insert Image Button -->
-                <div class="flex-col insert-image" v-show="!isImageLoaded">
-                    <i class="material-icons grey-text text-darken-3"
-                        >add_a_photo</i
-                    >
-
-                    <a class="btn waves-effect waves-light">
-                        <label
-                            class="valign-wrapper white-text"
-                            for="image_input"
-                            style="font-size: 14px"
-                        >
-                            <i class="material-icons mr-2">add</i>
-                            Input gambar
+                    <!-- Image Input Button -->
+                    <div class="image-input" v-if="!isImageLoaded">
+                        <i class="material-icons text-white my-2">
+                            add_a_photo
+                        </i>
+                        <label for="image_input">
+                            <a class="btn btn-success">
+                                <i class="material-icons me-2">add</i>
+                                Input Gambar
+                            </a>
                         </label>
-                    </a>
+                    </div>
+
+                    <!-- Class Detected -->
+                    <ClassDetected
+                        :detectedClasses="detectedClasses"
+                        @itemPressed="_toggleVisiblityPressed"
+                    />
+
+                    <!-- Loading -->
+                    <div class="loading-mask" v-if="isPredicting">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="text-white">
+                            Memproses
+                        </span>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="flex-col w-50">
-            <div class="card-content flex-fill">
-                <!-- Model Status -->
-                <h6 class="green-text valign-wrapper" style="height: 2rem">
-                    <i class="material-icons mr-2" v-if="!isLoadingModel"
-                        >check_circle</i
-                    >
-                    <span class="loader mr-2" v-else></span>
-                    <span>{{
-                        isLoadingModel ? "Loading Model" : "Models Loaded"
-                    }}</span>
-                </h6>
 
-                <!-- Total -->
-                <InvoiceTotal :price="invoiceDetails.total"></InvoiceTotal>
+                <div class="col-md-6 col-12 d-flex flex-column p-3">
+                    <!-- Model Status -->
+                    <ModelStatus :isLoadingModel="isLoadingModel" />
 
-                <div class="divider grey darken-3 my-4"></div>
+                    <!-- Total -->
+                    <span class="text-end">Total</span>
+                    <h1 class="text-end">
+                        {{ PriceFormat(invoiceDetails.total, 2) }}-
+                    </h1>
 
-                <!-- Invoice Table -->
-                <InvoiceTable :tableData="invoice"></InvoiceTable>
-            </div>
+                    <hr />
 
-            <div class="card-action">
-                <!-- Prediction Button -->
-                <a
-                    class="btn waves-effect waves-light mx-1"
-                    @click="_detectBtnPressed"
-                    :class="{ disabled: !isImageLoaded || isPredicted }"
-                >
-                    <span class="valign-wrapper">
-                        <i class="material-icons mr-2">filter_center_focus</i>
-                        Deteksi
-                    </span>
-                </a>
+                    <!-- Invoice Table -->
+                    <InvoiceTable :tableData="invoice" />
 
-                <!-- Reset Button -->
-                <a
-                    class="btn waves-effect waves-light blue mx-1"
-                    @click="_resetBtnPressed"
-                    :class="{ disabled: !isImageLoaded }"
-                >
-                    <span class="valign-wrapper">
-                        <i class="material-icons mr-2">cached</i>
-                        Reset
-                    </span>
-                </a>
+                    <!-- Buttons -->
+                    <div class="d-flex flex-row align-items-center">
+                        <!-- Detect Button -->
+                        <button
+                            class="btn btn-primary me-2"
+                            @click="_detectBtnPressed"
+                            :class="{ disabled: !isImageLoaded || isPredicted }"
+                        >
+                            <i class="material-icons me-2"
+                                >filter_center_focus</i
+                            >
+                            Deteksi
+                        </button>
 
-                <!-- Detection Time -->
-                <span v-if="detectionTime">
-                    <i>Waktu Deteksi : {{ detectionTime }} ms</i>
-                </span>
+                        <!-- Reset Button -->
+                        <button
+                            class="btn btn-danger me-2"
+                            @click="_resetBtnPressed"
+                            :class="{ disabled: !isImageLoaded }"
+                        >
+                            <i class="material-icons me-2">cached</i>
+                            Reset
+                        </button>
+
+                        <!-- Detection Time -->
+                        <i class="flex-fill text-end" v-if="detectionTime">
+                            <i class="material-icons me-2">timer</i>
+                            <span class="fs-6">{{ detectionTime }} ms</span>
+                        </i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -134,9 +120,10 @@
 const BASE_URL = "./";
 
 import InvoiceTable from "./components/InvoiceTable.vue";
-import InvoiceTotal from "./components/InvoiceTotal.vue";
+import ModelStatus from "./components/ModelStatus.vue";
+import ClassDetected from "./components/ClassDetected.vue";
 
-import { CreateBBoxUrlData } from "./plugins/Helper";
+import { CreateBBoxUrlData, PriceFormat } from "./plugins/Helper";
 import ObjectDetection from "./plugins/ObjectDetection";
 import DetectionResult from "./plugins/DetectionResult";
 
@@ -144,7 +131,8 @@ export default {
     name: "App",
     components: {
         InvoiceTable,
-        InvoiceTotal,
+        ModelStatus,
+        ClassDetected,
     },
     data() {
         return {
@@ -152,6 +140,7 @@ export default {
             detectResult: null,
             boundingBoxes: [],
             classes: [],
+            detectedClasses: [],
 
             imageUrl: "",
             imageSize: { width: 0, height: 0 },
@@ -160,13 +149,13 @@ export default {
             isLoadingModel: false,
             isPredicting: false,
             isPredicted: false,
-            isLoading: false,
 
             detectionTime: 0,
         };
     },
     methods: {
         CreateBBoxUrlData,
+        PriceFormat,
 
         _fileInputChanged(event) {
             const file = event.target.files[0];
@@ -175,10 +164,10 @@ export default {
         },
         async _detectBtnPressed() {
             const timeStart = Date.now();
+            const image = document.getElementById("predict-image");
+
             this.isPredicting = true;
             this.isPredicted = false;
-            this.isLoading = true;
-            const image = document.getElementById("predict-image");
 
             this.detectResult = new DetectionResult(
                 await this.objDetect.detect(image, 0.5)
@@ -187,40 +176,34 @@ export default {
             if (this.detectResult?.length > 0) {
                 this.renderBoundingBox();
                 this.isPredicted = true;
+
                 const timeEnd = Date.now();
                 this.detectionTime = timeEnd - timeStart;
                 console.log("Time", this.detectionTime);
+            } else {
+                alert("Tidak terdeteksi produk");
             }
-            this.isLoading = false;
             this.isPredicting = false;
         },
         _resetBtnPressed() {
             this.$refs.ref_image_input.value = null;
             this.boundingBoxes = [];
+            this.detectedClasses = [];
             this.detectResult = null;
             this.imageUrl = "";
             this.isImageLoaded = false;
             this.isPredicted = false;
             this.detectionTime = 0;
         },
-        _imageLoaded(e) {
-            const { width, height } = e.target;
-            const parent = document
-                .getElementById("image_wrapper")
-                .getBoundingClientRect();
-
-            if (width < parent.width && height < parent.height) {
-                document.getElementById("predict-image").classList.add("h-100");
-            }
-            const image = document.getElementById("predict-image");
-            this.imageSize = {
-                width: image.naturalWidth,
-                height: image.naturalHeight,
-            };
-        },
         _toggleVisiblityPressed(index) {
-            const isVisible = this.boundingBoxes[index].isVisible;
-            this.boundingBoxes[index].isVisible = !isVisible;
+            const class_id = this.detectedClasses[index].id;
+            const isVisible = this.detectedClasses[index].isVisible;
+            this.detectedClasses[index].isVisible = !isVisible;
+            this.boundingBoxes.forEach((bbox, i) => {
+                if (bbox.class_id == class_id) {
+                    this.boundingBoxes[i].isVisible = !isVisible;
+                }
+            });
         },
         renderBoundingBox() {
             this.boundingBoxes = [];
@@ -228,25 +211,34 @@ export default {
             if (this.detectResult.length < 1) {
                 return;
             }
-            this.detectResult.invoice.forEach((e) => {
+            const image = document.getElementById("predict-image");
+            this.detectedClasses = this.groupedInvoice.map((item) => ({
+                ...item,
+                isVisible: true,
+            }));
+
+            this.detectResult.invoice.forEach((item) => {
                 const bbox_data = this.CreateBBoxUrlData(
                     "temp-canvas",
-                    e,
-                    this.imageSize
+                    item,
+                    image
                 );
-                this.boundingBoxes.push({ bbox_data, isVisible: true });
+
+                this.boundingBoxes.push({
+                    class_id: item.class.id,
+                    bbox_data,
+                    isVisible: true,
+                });
             });
         },
     },
     computed: {
         invoice() {
             if (!this.detectResult) return [];
-
             return this.detectResult.invoice;
         },
         invoiceDetails() {
             if (!this.detectResult) return { items: 0, total: 0 };
-
             return {
                 items: this.detectResult.length,
                 total: this.detectResult.invoiceTotal,
@@ -254,29 +246,23 @@ export default {
         },
         groupedInvoice() {
             if (!this.detectResult) return [];
-
             return this.detectResult.groupedInvoice;
         },
     },
     async mounted() {
         this.isPredicted = false;
-        this.isLoading = true;
 
         this.objDetect = new ObjectDetection({
             model_url: BASE_URL + "model/model.json",
             classes_url: BASE_URL + "product_data.json",
-            detection_threshold: 0.5,
         });
 
-        // Loading Classes
-        this.classes = await this.objDetect.loadClasses();
-
-        // Loading Model
         this.isLoadingModel = true;
-        await this.objDetect.loadModel();
 
+        this.classes = await this.objDetect.loadClasses();
+        await this.objDetect.loadModel();
+        
         this.isLoadingModel = false;
-        this.isLoading = false;
     },
 };
 </script>
